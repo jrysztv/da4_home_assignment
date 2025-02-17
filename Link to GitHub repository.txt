@@ -1,0 +1,11 @@
+Link to GitHub repository:
+https://github.com/jrysztv/da4_home_assignment.git
+
+The submission was prepared in markdown format. It is added to the README file of the repository.
+However, it s also added as an html export, under the name da4_submission_report.html
+I attached this file
+The reproducible analysis ode is included in da4_home_assigment/da4_home_assignment.ipynb
+
+AI POLICY:
+- AI helped with markdown formatting of tables, and with some code generation.
+- No text was generated with AI in the final submission

@@ -102,8 +102,6 @@ The Fixed Effects model contains time and country-specific fixed effects. As dis
 
 The coefficient of log(GDP per capita) is 0.3653. This can be interpreted as a 1% increase in GDP per capita is associated with a 0.365% increase in CO₂ per capita, holding all country-specific and time-specific fixed effects constant. In other words, after accounting for the differences between countries in the average log(GDP per capita) for each country, and accounting for the differences between the averages for each time period, the log(GDP per capita) is still associated with a higher level of CO2 emissions per capita.
 
-The *"Within-R^2"* is 
-
 ## 3.2 Secondary analysis - including the confounder
 As stated before in chapter 2.2, the confounder can only be included for time-series analysis on a stricter, smaller subset of the data used for the analyses above. The timeframe is limited to 2002 and 2020, and all countries are ommitted that have any missing value for log GDP per capita, log CO2 emissions per capita or Manufacturing % of GDP. Hence, due to the different subsets of data, the models are not directly comparable.
 
