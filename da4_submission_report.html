@@ -1,0 +1,2218 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Analysing the relationship between CO2 emissions and GDP per capita and assessing the level of industrualization as a potential confounder</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <h1 id="analysing-the-relationship-between-co2-emissions-and-gdp-per-capita-and-assessing-the-level-of-industrualization-as-a-potential-confounder">Analysing the relationship between CO2 emissions and GDP per capita and assessing the level of industrualization as a potential confounder</h1>
+<p>Author: István Járay
+Course: Data Analysis 4 @CEU
+Lecturer: Gábor Békés
+CEUID: 2104062</p>
+<h1 id="1-introduction">1. Introduction</h1>
+<p>In the following assignment, I analyze the potential country-level relationship between CO2 emissions and GDP.</p>
+<p>The source of the dataset is the World Bank Development Indicators, accessed through a python sdk called wbgapi</p>
+<p>The variables in the source database are:</p>
+<ul>
+<li>GDP per capita, PPP (constant 2021 international $)
+<ul>
+<li>International dollar expresses a PPP-based conversion of all local currencies to the US dollar.</li>
+</ul>
+</li>
+<li>Carbon dioxide (CO2) emissions (total) excluding LULUCF (Mt CO2e)
+<ul>
+<li>LULUCF expresses forest-fire related emissions</li>
+<li>This is not per capita, I address this in my data preprocessing</li>
+<li>All values are expressed in Million tons. In order for my log transformations to work, I will later transform them into tons (achieved by multiplying by a million)</li>
+</ul>
+</li>
+<li>Total population</li>
+<li>Manufacturing, value added (% of GDP)
+<ul>
+<li>The GDP is the total domestic value added.
+<ul>
+<li>I hope to gauge how industry or service-centric an economy is by expressing the ratio of the manufacturing sector's added value to this total.</li>
+</ul>
+</li>
+<li>This is the confounder variable.</li>
+</ul>
+</li>
+</ul>
+<h2 id="11-expectations">1.1 Expectations</h2>
+<p>I expect, that the GDP per capita and the level of CO2 emissions will show signs of a positive relationship</p>
+<ul>
+<li>Higher levels of GDP per capita might correlate with a higher level of economic activity. This could lead to higher levels of CO2 emissions.</li>
+</ul>
+<p>However, I expect, that the level of industrialization will be a common cause confounder:</p>
+<ul>
+<li>I assume, that the more industrialized an economy is, the higher it's CO2 output will be.</li>
+<li>However I also assume, that the highest GDP-per-capita is observed among those economies, which are service-centric. This could indicate a negative relationship between the level of industrialization and the GDP per capita.</li>
+<li>If the chosen variable gauges this effect correctly, and the assumptions hold, then in a simple OLS setting, ommitting it could lead to overestimating the effect of GDP per capita.</li>
+</ul>
+<h1 id="2-describing-the-data">2. Describing the data</h1>
+<p>When working with a panel dataset, it is important to assess data coverage over all periods. Hence, I discuss the descriptive statistics separately, in a cross-section to assume a functional form (whether logs could/should be applied). Then, I follow with assessing data coverage over multiple periods.</p>
+<h2 id="21-descriptive-statistics">2.1 Descriptive Statistics</h2>
+<p>I include descriptive statistics for both 2005 and 2023, as I  include those specific years in the cross-sectional OLS regressions.
+I introduced logs of GDP per capita and CO2 emissions. In Figure 1 and Figure 2, I compared the distributions of the variables before and following the log transformation. Table 1 and 2 contains the descriptive statistics.</p>
+<ul>
+<li>GDP per capita seems to be close to log-normal: following the log transformation, the resulting variable is unimodal and symmetric in both time periods</li>
+<li>The CO2 per capita remains left-skewed, and in the case of 2023, two moduses are apparent. However, the log-transformation could be beneficial due to the large differences in observed levels.</li>
+<li>However, the log transformation might not be beneficial for the Manufacturing % of GDP.</li>
+</ul>
+<p>As a result, I chose the logs of GDP per capita and CO2 emissions per capita for the analysis. However, the Manufacturing % of GDP is included without log transformation.</p>
+<h2 id="22-analysis-of-coverage-and-ommission-practice">2.2 Analysis of coverage and ommission practice</h2>
+<p>I analyze the coverage of the data for the time-series regressions. The goal is to only keep those countries in the dataset, which have data available for all time periods for all variables.
+Generally, over all time periods, the Manufacturing % of GDP seems to have the lowest coverage, still at 80%. (Figure 3). GDP per capita and CO2 emissions have a coverage of around 90%.</p>
+<p>Introducing the time dimension, however, yields a less promising finding. (Figure 4) The coverage of the Manufacturing % of GDP seems to be around 50% around 1992. From around 2002 until 2020 however, we can see a higher coverage of around 75-80%. The total coverage without this varable seems to revolve steadily around 85-90%.</p>
+<p>As a result, I decided to create two subsets of the data:</p>
+<ul>
+<li>The first subset spans the entire timeframe and ommits all countries that has any missing values of GDP per capita or CO2 emissions. I will refer to this subset as the <em>core subset</em>.</li>
+<li>The second subset spans only from 2002 until 2020 to provide higher coverage. Compared to the <em>core subset</em>, this also includes the confounding variable as a basis for omission criteria.</li>
+</ul>
+<p>The question naturally arises, whether this filtering introduces biases to our dataset. In Figure 5, I compared the conditional distributions of the log of GDP per capita and the log of CO2 emissions per capita. There may be a systematic bias: Less developed countries appear to have more missing data on manufacturing ratio reported.</p>
+<ul>
+<li>Contrary to expectations, this difference appears to be more pronounced in 2005 and 2023 than in 1996.
+<ul>
+<li>The disparity could mean that richer countries adopted the reporting of this measure more successfully.</li>
+</ul>
+</li>
+<li>Hence, our findings could be biased - limiting the strength of the estimated relationship between a country's wealth and CO2.</li>
+</ul>
+<p>The list of countries ommitted can be found in Table 3 and 4. Thirty four countries are ommitted from the core subset and seventy six are ommitted from the reduced subset including the confounding variable.</p>
+<p>A minor detail is, that before filtering, all variables were inputed by country with the average of the directly preceding or following year's observations, if there was only one year missing.</p>
+<h1 id="3-analysis">3. Analysis</h1>
+<h2 id="31-primary-analysis">3.1 Primary analysis</h2>
+<p>In this chapter, I introduce six parametric estimation models. In each case, the dependent variable is the level of CO2 emissions per capita, and the explanatory variable is the level of GDP per capita.</p>
+<p>The first two models are cross-sectional OLS models on 2005 (model 1) and 2023 (model 2) respectively. This first glimpse will yield us an overview on the general relationship between CO2 emissions and GDP within a country.</p>
+<p>Then, I introduce three first difference models: one withut lags (model 3), one with lags up to two years (model 4) and one with lags up to 6 years (model 5). In all cases, I include time-period dummies. The first difference (FD) model allows us to introduce time dimension to our analysis in a specific manner: by estimating the <em>&quot;effects&quot;</em> of shocks at a given time. Furthermore, introducing lags of the first differences helps us to gauge lasting effects and compunding effects of shocks. In other words, FD models estimate the relationship between <em>changes</em> of the dependent and <em>changes</em> of the explanatory (or other confounding) variables.</p>
+<p>Finally, I introduce a fixed effect model (FE) with time and country fixed effects (model 6). Controlling for time and contry fixed effects, a FE model can similarly be used to estimate stochastic relationships as FD. The setup is however different, as we are not modelling changes, but relationships in <em>&quot;demeaned&quot;</em> variances. <em>(Demeaned in the sense, that country-level fixed effects take care of the level differences, in time series and time-period specific fixed effects filter general shocks and trends affecting all countries at the same time)</em></p>
+<h3 id="311-ols-estimations-for-2005-and-2023">3.1.1 OLS estimations for 2005 and 2023</h3>
+<p>Table 5 compares the two OLS regressions (model 1 and 2). The coefficient for the OLS regression on the cross-section of 2005 is 0.6883. This can be interpreted as a 1% increase in GDP per capita is associated with a 0.6883% increase in CO₂ emissions per capita. This estimated relationship in elasticities is somewhat smaller in 2023 with a coefficient of 0.621.</p>
+<p>Looking at the two scatterplots (Figure 6), it is visible, that the error terms are heterogenous. A higher level of the log of GDP per capita is associated with higher variance. Furthermore, a slight convex relationship can be observed at lower GDP per capita levels. This may be the result of the log transformations. This finding holds for both time periods.</p>
+<h3 id="312-first-difference-models">3.1.2 First Difference models</h3>
+<p>Table 6 Compares the Fixed Difference models.</p>
+<h4 id="model-3---time-period-dummies">Model 3 - Time Period Dummies</h4>
+<p>Model 3 runs the regression with Δ log(CO₂ per capita) as the dependent variable and Δ log(GDP per capita) as the eplanatory variable. Model 3 also includes Time trend dummies.</p>
+<p>In this setup, the model only captures immediate effects of changes in GDP per Capita on CO2 emissions. Time series dummies filter out those confounding factors, wich would influence all countries at the same time period. Hence, the estimated coefficient captures the remaining relationship between the two variables.</p>
+<p>The coefficient is 0.653, which indicates that in a given year, a 1% higher difference in GDP per capita is associated with a 0.653% higher difference in CO₂ per capita holding the time period constant.</p>
+<h4 id="model-45---introducing-lags">Model 4&amp;5 - Introducing lags</h4>
+<p>Introducing the lags of the first differences yields us the possibility filter out the effects of long-lasting shocks from the immediate change. Although the immediate relationship weakened, none of the lags had a significant coefficient estimation.</p>
+<p>Introducing lags up to two years, the coefficient of the concurrent difference reduced to 0.292. Introducing lags up to 6 years however, increased the coefficient to 0.326. I believe the fact, that the window of observation shrinked might be a contributing factor to this unexpected behaviour.</p>
+<h4 id="robustness-analysis-with-country-level-intercepts">Robustness analysis with Country-level intercepts</h4>
+<p>Country-level intercepts in a FD model filter the differences in individual trends, further specifying the effects of shocks. In the current implementation, the general intercept is not ommitted, but is rendered meaningless nonetheless. What matters is the controlling behavior.</p>
+<p>Table 7 compares our initial findings in Table 6 with introduced country-level intercepts. In summary, the absolute value of the coefficients either did not change or slightly decreased.</p>
+<h3 id="313-fixed-effects-model-with-time-and-country-fixed-effects">3.1.3 Fixed Effects model with time and country fixed effects</h3>
+<p>The Fixed Effects model contains time and country-specific fixed effects. As discussed above, this eliminates both individual- and time-specific confounders through <em>demeaning</em>. What remains is the individual variation after controlling for these factors.</p>
+<p>The coefficient of log(GDP per capita) is 0.3653. This can be interpreted as a 1% increase in GDP per capita is associated with a 0.365% increase in CO₂ per capita, holding all country-specific and time-specific fixed effects constant. In other words, after accounting for the differences between countries in the average log(GDP per capita) for each country, and accounting for the differences between the averages for each time period, the log(GDP per capita) is still associated with a higher level of CO2 emissions per capita.</p>
+<p>The <em>&quot;Within-R^2&quot;</em> is</p>
+<h2 id="32-secondary-analysis---including-the-confounder">3.2 Secondary analysis - including the confounder</h2>
+<p>As stated before in chapter 2.2, the confounder can only be included for time-series analysis on a stricter, smaller subset of the data used for the analyses above. The timeframe is limited to 2002 and 2020, and all countries are ommitted that have any missing value for log GDP per capita, log CO2 emissions per capita or Manufacturing % of GDP. Hence, due to the different subsets of data, the models are not directly comparable.</p>
+<p>Table 8 contains the coefficient estimates for these models. Although the confounder variable's coeficient is in neither of the models significant, log GDP per capita remains in all cases positive and significant. The coefficients in all cases are even larger than without adding the confounders, but due to the differing of data subsets, this might be due to selection bias.</p>
+<h1 id="4-conclusion">4. Conclusion</h1>
+<p>A consistent finding is, that GDP and CO2 emissions are positively related across all estimation methods. However, the inclusion of the level of industrialization yielded no significant findings, even if the primary relationship remained unaffected. I believe, that the variable chosen as the confounder might not have been the right one to capture this factor, which might be due partially to poor coverage or perhaps because it is not direct enough. The final, Fixed Effect model, which includes country- and time-specific fixed effects, estimates that a 1% increase in GDP per capita is associated with a 0.365% increase in CO₂ per capita holding the fixed effects constant. This accounts for more than an effect window of 2 or 6 years, hence this model is my final result.</p>
+<h1 id="appendix">APPENDIX</h1>
+<h2 id="figures">Figures</h2>
+<h2 id="figure-1-comparing-log-and-level-distributions-of-variables-in-2005"><strong>Figure 1: Comparing log and level distributions of variables in 2005</strong>
+<img src="file:///c:\Users\ijara_go12\CEUProjects\Winter\da4-home-assignment\results\final\graphs\distributions_2005.png" alt="Fig 1: Distribution of Variables in 2005"></h2>
+<h2 id="figure-2-comparing-log-and-level-distributions-of-variables-in-2023"><strong>Figure 2: Comparing log and level distributions of variables in 2023</strong>
+<img src="file:///c:\Users\ijara_go12\CEUProjects\Winter\da4-home-assignment\results\final\graphs\distributions_2023.png" alt="Distribution of Variables in 2023"></h2>
+<p><strong>Figure 3: Coverage by features</strong></p>
+<h2 id=""><img src="file:///c:\Users\ijara_go12\CEUProjects\Winter\da4-home-assignment\results\final\graphs\non_null_ratios.png" alt="Coverage by features"></h2>
+<h2 id="figure-4-proportion-of-countries-with-values-non-missing-by-year-by-variable"><strong>Figure 4: Proportion of Countries with Values Non-missing by Year by Variable</strong>
+<img src="file:///c:\Users\ijara_go12\CEUProjects\Winter\da4-home-assignment\results\final\graphs\missing_values_by_year.png" alt="Coverage by features by year"></h2>
+<h2 id="figure-5-conditional-distributions-of-variables-based-on-availability-of-data-on-manufacturing-"><strong>Figure 5: Conditional Distributions of Variables Based on Availability of Data on Manufacturing %</strong>
+<img src="file:///c:\Users\ijara_go12\CEUProjects\Winter\da4-home-assignment\results\final\graphs\conditional_distributions.png" alt="Conditional distributions"></h2>
+<h2 id="figure-6-model-1-and-2-represented-on-a-scatterplot-with-a-fitted-regression-line"><strong>Figure 6: Model 1 and 2 represented on a scatterplot with a fitted regression line.</strong>
+<img src="file:///c:\Users\ijara_go12\CEUProjects\Winter\da4-home-assignment\results\final\graphs\scatterplots_with_regression_lines.png" alt="Scatterplots with regression lines"></h2>
+<h2 id="tables">Tables</h2>
+<p><strong>Table 1: Descriptive statistics of 2005</strong></p>
+<table>
+<thead>
+<tr>
+<th>Year</th>
+<th>Variable</th>
+<th>Count</th>
+<th>Mean</th>
+<th>Median</th>
+<th>Std Dev</th>
+<th>Min</th>
+<th>Max</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2005</td>
+<td>CO2 emissions (Mt CO2e)</td>
+<td>251.0</td>
+<td>1004.9597</td>
+<td>19.3776</td>
+<td>3286.1253</td>
+<td>0.0000</td>
+<td>30044.5432</td>
+</tr>
+<tr>
+<td>2005</td>
+<td>Manufacturing, value added (% of GDP)</td>
+<td>223.0</td>
+<td>12.8525</td>
+<td>12.5668</td>
+<td>6.8975</td>
+<td>0.2326</td>
+<td>42.4012</td>
+</tr>
+<tr>
+<td>2005</td>
+<td>GDP per capita (PPP, constant 2021 international $)</td>
+<td>241.0</td>
+<td>20140.1460</td>
+<td>10527.4748</td>
+<td>22878.0632</td>
+<td>830.5092</td>
+<td>124095.6173</td>
+</tr>
+<tr>
+<td>2005</td>
+<td>Population (millions)</td>
+<td>265.0</td>
+<td>262.7536</td>
+<td>9.0296</td>
+<td>827.7919</td>
+<td>0.0099</td>
+<td>6575.6443</td>
+</tr>
+<tr>
+<td>2005</td>
+<td>CO2 emissions per capita (tons)</td>
+<td>251.0</td>
+<td>4.8321</td>
+<td>2.2862</td>
+<td>8.1465</td>
+<td>0.0000</td>
+<td>87.5523</td>
+</tr>
+<tr>
+<td>2005</td>
+<td>Log GDP per capita</td>
+<td>241.0</td>
+<td>9.2890</td>
+<td>9.2618</td>
+<td>1.1746</td>
+<td>6.7232</td>
+<td>11.7288</td>
+</tr>
+<tr>
+<td>2005</td>
+<td>Log CO2 emissions per capita</td>
+<td>251.0</td>
+<td>1.2770</td>
+<td>1.1897</td>
+<td>0.9322</td>
+<td>0.0000</td>
+<td>4.4836</td>
+</tr>
+</tbody>
+</table>
+<p>Total in 2005: 266</p>
+<p><strong>Table 2: Descriptive statistics of 2023</strong></p>
+<table>
+<thead>
+<tr>
+<th>Year</th>
+<th>Variable</th>
+<th>Count</th>
+<th>Mean</th>
+<th>Median</th>
+<th>Std Dev</th>
+<th>Min</th>
+<th>Max</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2023</td>
+<td>CO2 emissions (Mt CO2e)</td>
+<td>251.0</td>
+<td>1423.7028</td>
+<td>24.1638</td>
+<td>4807.9239</td>
+<td>0.0000</td>
+<td>39023.9370</td>
+</tr>
+<tr>
+<td>2023</td>
+<td>Manufacturing, value added (% of GDP)</td>
+<td>202.0</td>
+<td>12.6426</td>
+<td>12.6125</td>
+<td>6.7448</td>
+<td>0.4922</td>
+<td>45.6045</td>
+</tr>
+<tr>
+<td>2023</td>
+<td>GDP per capita (PPP, constant 2021 international $)</td>
+<td>240.0</td>
+<td>25513.1676</td>
+<td>17458.0862</td>
+<td>25132.5122</td>
+<td>828.8611</td>
+<td>130373.4779</td>
+</tr>
+<tr>
+<td>2023</td>
+<td>Population (millions)</td>
+<td>265.0</td>
+<td>328.7886</td>
+<td>10.6449</td>
+<td>1018.5895</td>
+<td>0.0098</td>
+<td>8061.8760</td>
+</tr>
+<tr>
+<td>2023</td>
+<td>CO2 emissions per capita (tons)</td>
+<td>251.0</td>
+<td>4.4620</td>
+<td>2.6608</td>
+<td>7.1655</td>
+<td>0.0000</td>
+<td>81.2095</td>
+</tr>
+<tr>
+<td>2023</td>
+<td>Log GDP per capita</td>
+<td>240.0</td>
+<td>9.6157</td>
+<td>9.7676</td>
+<td>1.1256</td>
+<td>6.7213</td>
+<td>11.7782</td>
+</tr>
+<tr>
+<td>2023</td>
+<td>Log CO2 emissions per capita</td>
+<td>251.0</td>
+<td>1.2997</td>
+<td>1.2977</td>
+<td>0.8439</td>
+<td>0.0000</td>
+<td>4.4093</td>
+</tr>
+<tr>
+<td>Total in 2023: 266</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table 3: List of ommitted countries based on the core set of variables</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">country</th>
+<th style="text-align:left">log_gdp_percap_missing</th>
+<th style="text-align:left">co2_percap_missing</th>
+<th style="text-align:left">log_gdp_percap_avg</th>
+<th style="text-align:left">co2_percap_avg</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Afghanistan</td>
+<td style="text-align:left">8</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">7.754922324</td>
+<td style="text-align:left">0.152898568</td>
+</tr>
+<tr>
+<td style="text-align:left">American Samoa</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">0.001874733</td>
+</tr>
+<tr>
+<td style="text-align:left">Andorra</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">10.95512089</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">British Virgin Islands</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">1.730038942</td>
+</tr>
+<tr>
+<td style="text-align:left">Cayman Islands</td>
+<td style="text-align:left">14</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">11.25973742</td>
+<td style="text-align:left">3.958843445</td>
+</tr>
+<tr>
+<td style="text-align:left">Channel Islands</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Cuba</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">2.333789109</td>
+</tr>
+<tr>
+<td style="text-align:left">Curacao</td>
+<td style="text-align:left">8</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">10.3535129</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Djibouti</td>
+<td style="text-align:left">21</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">8.602280929</td>
+<td style="text-align:left">1.028060375</td>
+</tr>
+<tr>
+<td style="text-align:left">Eritrea</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">0.25222302</td>
+</tr>
+<tr>
+<td style="text-align:left">Faroe Islands</td>
+<td style="text-align:left">16</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">11.02117712</td>
+<td style="text-align:left">0.039026359</td>
+</tr>
+<tr>
+<td style="text-align:left">French Polynesia</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">3.626675926</td>
+</tr>
+<tr>
+<td style="text-align:left">Gibraltar</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">14.42059959</td>
+</tr>
+<tr>
+<td style="text-align:left">Greenland</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">10.84712496</td>
+<td style="text-align:left">6.344057712</td>
+</tr>
+<tr>
+<td style="text-align:left">Guam</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">0.001779658</td>
+</tr>
+<tr>
+<td style="text-align:left">Isle of Man</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Korea, Dem. People's Rep.</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">2.863984017</td>
+</tr>
+<tr>
+<td style="text-align:left">Kosovo</td>
+<td style="text-align:left">16</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">9.200605052</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Liechtenstein</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Monaco</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Montenegro</td>
+<td style="text-align:left">5</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">9.85283933</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">New Caledonia</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">13.16935103</td>
+</tr>
+<tr>
+<td style="text-align:left">Northern Mariana Islands</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">0</td>
+</tr>
+<tr>
+<td style="text-align:left">Not classified</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">San Marino</td>
+<td style="text-align:left">5</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">11.09472076</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Serbia</td>
+<td style="text-align:left">3</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">9.681871103</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Sint Maarten (Dutch part)</td>
+<td style="text-align:left">17</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">10.77437852</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">South Sudan</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">St. Martin (French part)</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Turks and Caicos Islands</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">10.13726001</td>
+<td style="text-align:left">1.500344597</td>
+</tr>
+<tr>
+<td style="text-align:left">Venezuela, RB</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">5.271315165</td>
+</tr>
+<tr>
+<td style="text-align:left">Virgin Islands (U.S.)</td>
+<td style="text-align:left">11</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">10.82968459</td>
+<td style="text-align:left">0.001857901</td>
+</tr>
+<tr>
+<td style="text-align:left">West Bank and Gaza</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">8.529183933</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Yemen, Rep.</td>
+<td style="text-align:left">32</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">0.691480512</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table 4: List of ommitted countries based on the subsetting including the confounder</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">country</th>
+<th style="text-align:left">log_gdp_percap_missing</th>
+<th style="text-align:left">co2_percap_missing</th>
+<th style="text-align:left">man_to_gdp_missing</th>
+<th style="text-align:left">log_gdp_percap_avg</th>
+<th style="text-align:left">co2_percap_avg</th>
+<th style="text-align:left">man_to_gdp_avg</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">American Samoa</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">0.001846368</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Andorra</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">11.02666842</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">3.632720832</td>
+</tr>
+<tr>
+<td style="text-align:left">Armenia</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">10</td>
+<td style="text-align:left">9.298861733</td>
+<td style="text-align:left">1.671620413</td>
+<td style="text-align:left">10.46933407</td>
+</tr>
+<tr>
+<td style="text-align:left">Aruba</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">1</td>
+<td style="text-align:left">10.53856544</td>
+<td style="text-align:left">4.129437163</td>
+<td style="text-align:left">4.315381714</td>
+</tr>
+<tr>
+<td style="text-align:left">Bahrain</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">10.89275307</td>
+<td style="text-align:left">24.73497826</td>
+<td style="text-align:left">15.74594397</td>
+</tr>
+<tr>
+<td style="text-align:left">Bermuda</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">11.52317774</td>
+<td style="text-align:left">3.858306082</td>
+<td style="text-align:left">0.875845955</td>
+</tr>
+<tr>
+<td style="text-align:left">British Virgin Islands</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">1.980746364</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Bulgaria</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">9.972101593</td>
+<td style="text-align:left">6.715117642</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Burundi</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">6.838296857</td>
+<td style="text-align:left">0.040084507</td>
+<td style="text-align:left">10.07725483</td>
+</tr>
+<tr>
+<td style="text-align:left">Cayman Islands</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">11.26348732</td>
+<td style="text-align:left">3.939685313</td>
+<td style="text-align:left">0.828336281</td>
+</tr>
+<tr>
+<td style="text-align:left">Central African Republic</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">7</td>
+<td style="text-align:left">7.106601449</td>
+<td style="text-align:left">0.052776616</td>
+<td style="text-align:left">19.25904254</td>
+</tr>
+<tr>
+<td style="text-align:left">Channel Islands</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">14</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">0.806179029</td>
+</tr>
+<tr>
+<td style="text-align:left">China</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">9.244908629</td>
+<td style="text-align:left">6.61197477</td>
+<td style="text-align:left">30.28970111</td>
+</tr>
+<tr>
+<td style="text-align:left">Comoros</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">8.090908756</td>
+<td style="text-align:left">0.255685427</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Cuba</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">2.38090123</td>
+<td style="text-align:left">14.28809245</td>
+</tr>
+<tr>
+<td style="text-align:left">Curacao</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">10.36570143</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">7.121055361</td>
+</tr>
+<tr>
+<td style="text-align:left">Djibouti</td>
+<td style="text-align:left">11</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">11</td>
+<td style="text-align:left">8.55703817</td>
+<td style="text-align:left">0.81817874</td>
+<td style="text-align:left">3.107128904</td>
+</tr>
+<tr>
+<td style="text-align:left">East Asia &amp; Pacific</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">9.535970745</td>
+<td style="text-align:left">5.634346964</td>
+<td style="text-align:left">23.91521172</td>
+</tr>
+<tr>
+<td style="text-align:left">East Asia &amp; Pacific (IDA &amp; IBRD countries)</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">9.221760413</td>
+<td style="text-align:left">5.1569931</td>
+<td style="text-align:left">28.8775321</td>
+</tr>
+<tr>
+<td style="text-align:left">East Asia &amp; Pacific (excluding high income)</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">9.210318406</td>
+<td style="text-align:left">5.123359465</td>
+<td style="text-align:left">28.86830248</td>
+</tr>
+<tr>
+<td style="text-align:left">Equatorial Guinea</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">10.23512038</td>
+<td style="text-align:left">4.586985119</td>
+<td style="text-align:left">19.20602211</td>
+</tr>
+<tr>
+<td style="text-align:left">Eritrea</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">11</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">0.208837537</td>
+<td style="text-align:left">7.135844019</td>
+</tr>
+<tr>
+<td style="text-align:left">Faroe Islands</td>
+<td style="text-align:left">6</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">10.99282813</td>
+<td style="text-align:left">0.040123737</td>
+<td style="text-align:left">5.858674493</td>
+</tr>
+<tr>
+<td style="text-align:left">Fragile and conflict affected situations</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">8.573582289</td>
+<td style="text-align:left">1.157544448</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">French Polynesia</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">3.605585064</td>
+<td style="text-align:left">4.821005979</td>
+</tr>
+<tr>
+<td style="text-align:left">Gibraltar</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">15.78298644</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Greenland</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">1</td>
+<td style="text-align:left">10.97925194</td>
+<td style="text-align:left">9.089580556</td>
+<td style="text-align:left">5.20257851</td>
+</tr>
+<tr>
+<td style="text-align:left">Guam</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">0.001793071</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">IBRD only</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">9.346364015</td>
+<td style="text-align:left">4.124537588</td>
+<td style="text-align:left">20.74819567</td>
+</tr>
+<tr>
+<td style="text-align:left">IDA &amp; IBRD total</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">9.163770298</td>
+<td style="text-align:left">3.231273202</td>
+<td style="text-align:left">20.05251266</td>
+</tr>
+<tr>
+<td style="text-align:left">Isle of Man</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">10</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">2.595500825</td>
+</tr>
+<tr>
+<td style="text-align:left">Korea, Dem. People's Rep.</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">2.526081731</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Kosovo</td>
+<td style="text-align:left">6</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">6</td>
+<td style="text-align:left">9.137818817</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">13.42246263</td>
+</tr>
+<tr>
+<td style="text-align:left">Late-demographic dividend</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">9.567867935</td>
+<td style="text-align:left">6.099460971</td>
+<td style="text-align:left">22.44887454</td>
+</tr>
+<tr>
+<td style="text-align:left">Liberia</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">9</td>
+<td style="text-align:left">7.349173627</td>
+<td style="text-align:left">0.217127141</td>
+<td style="text-align:left">3.097480472</td>
+</tr>
+<tr>
+<td style="text-align:left">Libya</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">3</td>
+<td style="text-align:left">9.709000899</td>
+<td style="text-align:left">8.886620252</td>
+<td style="text-align:left">4.172954215</td>
+</tr>
+<tr>
+<td style="text-align:left">Liechtenstein</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">14</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">37.05701496</td>
+</tr>
+<tr>
+<td style="text-align:left">Low &amp; middle income</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">9.058591012</td>
+<td style="text-align:left">2.931523113</td>
+<td style="text-align:left">20.76711197</td>
+</tr>
+<tr>
+<td style="text-align:left">Madagascar</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">5</td>
+<td style="text-align:left">7.407118398</td>
+<td style="text-align:left">0.105798711</td>
+<td style="text-align:left">9.221876613</td>
+</tr>
+<tr>
+<td style="text-align:left">Malawi</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">15</td>
+<td style="text-align:left">7.274628349</td>
+<td style="text-align:left">0.295334657</td>
+<td style="text-align:left">11.57616058</td>
+</tr>
+<tr>
+<td style="text-align:left">Maldives</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">1</td>
+<td style="text-align:left">9.754334024</td>
+<td style="text-align:left">3.435128805</td>
+<td style="text-align:left">2.909080909</td>
+</tr>
+<tr>
+<td style="text-align:left">Mali</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">10</td>
+<td style="text-align:left">7.695260101</td>
+<td style="text-align:left">0.155083444</td>
+<td style="text-align:left">14.53693508</td>
+</tr>
+<tr>
+<td style="text-align:left">Middle income</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">9.133566395</td>
+<td style="text-align:left">3.199142246</td>
+<td style="text-align:left">20.99419329</td>
+</tr>
+<tr>
+<td style="text-align:left">Monaco</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Montenegro</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">9.87559317</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">5.453696418</td>
+</tr>
+<tr>
+<td style="text-align:left">Myanmar</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">8</td>
+<td style="text-align:left">8.23988092</td>
+<td style="text-align:left">0.333917389</td>
+<td style="text-align:left">22.08217573</td>
+</tr>
+<tr>
+<td style="text-align:left">Nauru</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">9.083632692</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">New Caledonia</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">3</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">14.19521281</td>
+<td style="text-align:left">5.508807473</td>
+</tr>
+<tr>
+<td style="text-align:left">Northern Mariana Islands</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">0</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Not classified</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Other small states</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">10.06403484</td>
+<td style="text-align:left">6.399183466</td>
+<td style="text-align:left">10.39513358</td>
+</tr>
+<tr>
+<td style="text-align:left">San Marino</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">13</td>
+<td style="text-align:left">11.13311526</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">29.99737589</td>
+</tr>
+<tr>
+<td style="text-align:left">Sao Tome and Principe</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">8.501465605</td>
+<td style="text-align:left">0.643460883</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Serbia</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">9.761830252</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">18.55051631</td>
+</tr>
+<tr>
+<td style="text-align:left">Sint Maarten (Dutch part)</td>
+<td style="text-align:left">7</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">9</td>
+<td style="text-align:left">10.80042918</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">1.656395437</td>
+</tr>
+<tr>
+<td style="text-align:left">Solomon Islands</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">1</td>
+<td style="text-align:left">7.826565218</td>
+<td style="text-align:left">0.588997702</td>
+<td style="text-align:left">8.335136971</td>
+</tr>
+<tr>
+<td style="text-align:left">Somalia</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">6.98253395</td>
+<td style="text-align:left">0.063897794</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">South Sudan</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">11</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">2.723282894</td>
+</tr>
+<tr>
+<td style="text-align:left">St. Lucia</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">9.936668518</td>
+<td style="text-align:left">0.96281494</td>
+<td style="text-align:left">3.141196585</td>
+</tr>
+<tr>
+<td style="text-align:left">St. Martin (French part)</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Sudan</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">11</td>
+<td style="text-align:left">8.314386401</td>
+<td style="text-align:left">0.447259366</td>
+<td style="text-align:left">5.201719115</td>
+</tr>
+<tr>
+<td style="text-align:left">Syrian Arab Republic</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">8.840445396</td>
+<td style="text-align:left">2.17179978</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">Tajikistan</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">9</td>
+<td style="text-align:left">7.844658943</td>
+<td style="text-align:left">0.568706638</td>
+<td style="text-align:left">11.31805607</td>
+</tr>
+<tr>
+<td style="text-align:left">Togo</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">5</td>
+<td style="text-align:left">7.67304626</td>
+<td style="text-align:left">0.260456655</td>
+<td style="text-align:left">14.43160523</td>
+</tr>
+<tr>
+<td style="text-align:left">Trinidad and Tobago</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">10</td>
+<td style="text-align:left">10.41423616</td>
+<td style="text-align:left">26.13709823</td>
+<td style="text-align:left">15.54006735</td>
+</tr>
+<tr>
+<td style="text-align:left">Turkmenistan</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">16</td>
+<td style="text-align:left">9.149041312</td>
+<td style="text-align:left">10.49551041</td>
+<td style="text-align:left">17.47972616</td>
+</tr>
+<tr>
+<td style="text-align:left">Turks and Caicos Islands</td>
+<td style="text-align:left">9</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">4</td>
+<td style="text-align:left">10.18019517</td>
+<td style="text-align:left">1.941406684</td>
+<td style="text-align:left">1.521445131</td>
+</tr>
+<tr>
+<td style="text-align:left">Tuvalu</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">9</td>
+<td style="text-align:left">8.285995798</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0.935526723</td>
+</tr>
+<tr>
+<td style="text-align:left">Upper middle income</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">9.471744203</td>
+<td style="text-align:left">5.207727085</td>
+<td style="text-align:left">22.5887862</td>
+</tr>
+<tr>
+<td style="text-align:left">Uzbekistan</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">8</td>
+<td style="text-align:left">8.681006285</td>
+<td style="text-align:left">4.359226269</td>
+<td style="text-align:left">13.50540348</td>
+</tr>
+<tr>
+<td style="text-align:left">Vanuatu</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">2</td>
+<td style="text-align:left">8.094732902</td>
+<td style="text-align:left">0.618196963</td>
+<td style="text-align:left">3.492875759</td>
+</tr>
+<tr>
+<td style="text-align:left">Venezuela, RB</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">6</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">5.51687191</td>
+<td style="text-align:left">13.66940808</td>
+</tr>
+<tr>
+<td style="text-align:left">Viet Nam</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">3</td>
+<td style="text-align:left">8.943358014</td>
+<td style="text-align:left">1.898330164</td>
+<td style="text-align:left">20.48745029</td>
+</tr>
+<tr>
+<td style="text-align:left">Virgin Islands (U.S.)</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">10.83794399</td>
+<td style="text-align:left">0.001853125</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">West Bank and Gaza</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">8.580844851</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">10.91142846</td>
+</tr>
+<tr>
+<td style="text-align:left">Yemen, Rep.</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left">0</td>
+<td style="text-align:left">19</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">0.752610376</td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table 5: Comparison of the OLS models - Model 1 (2005) &amp; Model 2 (2023)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Year</th>
+<th>Coefficient</th>
+<th>Interpretation</th>
+<th>R^2</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>2005</strong></td>
+<td>0.6883</td>
+<td>A 1% increase in GDP per capita is associated with a <strong>0.6883% increase</strong> in CO₂ emissions per capita.</td>
+<td>0.742</td>
+<td>74.2% of the variance in CO₂ per capita is explained by GDP per capita.</td>
+</tr>
+<tr>
+<td><strong>2023</strong></td>
+<td>0.6121</td>
+<td>A 1% increase in GDP per capita is associated with a <strong>0.6121% increase</strong> in CO₂ emissions per capita.</td>
+<td>0.692</td>
+<td>69.2% of the variance in CO₂ per capita is explained by GDP per capita.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Table 6: Fixed Differences Models</strong></p>
+<pre><code>                                Dependent variable: Δ log(CO₂ per capita)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Models --&gt;</th>
+<th>Time Period Dummies</th>
+<th>Linear Trend</th>
+<th>Up to 2-Year Lags</th>
+<th>Up to 6-Year Lags</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Intercept</strong></td>
+<td>0.287***</td>
+<td>0.025***</td>
+<td>-0.002***</td>
+<td>-0.006***</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td>(0.049)</td>
+<td>(0.006)</td>
+<td>(0.001)</td>
+<td>(0.001)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (t=0)</strong></td>
+<td>0.653***</td>
+<td>0.590***</td>
+<td>0.292***</td>
+<td>0.326***</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td>(0.028)</td>
+<td>(0.027)</td>
+<td>(0.028)</td>
+<td>(0.033)</td>
+</tr>
+<tr>
+<td><strong>Linear Time Trend</strong></td>
+<td></td>
+<td>-0.002***</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td>(0.000)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (1-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td>-0.004</td>
+<td>-0.035</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td>(0.020)</td>
+<td>(0.023)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (2-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td>0.000</td>
+<td>0.024</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td>(0.005)</td>
+<td>(0.023)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (3-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.028</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td></td>
+<td>(0.024)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (4-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.035</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td></td>
+<td>(0.026)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (5-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.007</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td></td>
+<td>(0.023)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (6-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.026</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td></td>
+<td>(0.017)</td>
+</tr>
+<tr>
+<td><strong>Time Trend Dummies</strong></td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Linear Time Trend</strong></td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>GDP Lags up to 2 Years</strong></td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>GDP Lags up to 6 Years</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Observations</strong></td>
+<td>7423</td>
+<td>7423</td>
+<td>6156</td>
+<td>4806</td>
+</tr>
+<tr>
+<td><strong>R²</strong></td>
+<td>0.630</td>
+<td>0.586</td>
+<td>0.074</td>
+<td>0.097</td>
+</tr>
+<tr>
+<td><strong>Adjusted R²</strong></td>
+<td>0.628</td>
+<td>0.586</td>
+<td>0.073</td>
+<td>0.096</td>
+</tr>
+<tr>
+<td><strong>Residual Std. Error</strong></td>
+<td>0.133 (df=7390)</td>
+<td>0.141 (df=7420)</td>
+<td>0.053 (df=6152)</td>
+<td>0.051 (df=4798)</td>
+</tr>
+<tr>
+<td><strong>F Statistic</strong></td>
+<td>29.422*** (df=32; 7390)</td>
+<td>234.419*** (df=2; 7420)</td>
+<td>38.264*** (df=3; 6152)</td>
+<td>19.291*** (df=7; 4798)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> *p&lt;0.1; **p&lt;0.05; **<em>p&lt;0.01</em></p>
+<p><strong>Table 7: Fixed Differences Models with Country-level intercepts****Table: Fixed Differences Models</strong></p>
+<pre><code>                                Dependent variable: Δ log(CO₂ per capita)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Models -&gt;</th>
+<th>Time period dummies</th>
+<th>Time period Dummies (Country Intercepts)</th>
+<th>Linear Trend</th>
+<th>Linear Trend (Country Intercepts)</th>
+<th>Up to 2-Year Lags</th>
+<th>Up to 2-Year Lags (Country Intercepts)</th>
+<th>Up to 6-Year Lags</th>
+<th>Up to 6-Year Lags (Country Intercepts)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Intercept</strong></td>
+<td>0.287***</td>
+<td>0.286***</td>
+<td>0.025***</td>
+<td>0.016***</td>
+<td>-0.002***</td>
+<td>-0.008***</td>
+<td>-0.006***</td>
+<td>-0.010***</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td>(0.049)</td>
+<td>(0.049)</td>
+<td>(0.006)</td>
+<td>(0.005)</td>
+<td>(0.001)</td>
+<td>(0.003)</td>
+<td>(0.001)</td>
+<td>(0.003)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (t=0)</strong></td>
+<td>0.653***</td>
+<td>0.654***</td>
+<td>0.590***</td>
+<td>0.589***</td>
+<td>0.292***</td>
+<td>0.282***</td>
+<td>0.326***</td>
+<td>0.320***</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td>(0.028)</td>
+<td>(0.028)</td>
+<td>(0.027)</td>
+<td>(0.027)</td>
+<td>(0.028)</td>
+<td>(0.029)</td>
+<td>(0.033)</td>
+<td>(0.035)</td>
+</tr>
+<tr>
+<td><strong>Linear Time Trend</strong></td>
+<td></td>
+<td></td>
+<td>-0.002***</td>
+<td>-0.002***</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td>(0.000)</td>
+<td>(0.000)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (1-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>-0.004</td>
+<td>-0.015</td>
+<td>-0.035</td>
+<td>-0.041*</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>(0.020)</td>
+<td>(0.021)</td>
+<td>(0.023)</td>
+<td>(0.024)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (2-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.000</td>
+<td>0.002</td>
+<td>0.024</td>
+<td>0.021</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>(0.005)</td>
+<td>(0.005)</td>
+<td>(0.023)</td>
+<td>(0.024)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (3-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.028</td>
+<td>0.024</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>(0.024)</td>
+<td>(0.025)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (4-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.035</td>
+<td>0.022</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>(0.026)</td>
+<td>(0.028)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (5-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.007</td>
+<td>-0.004</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>(0.023)</td>
+<td>(0.024)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (6-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.026</td>
+<td>0.017</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>(0.017)</td>
+<td>(0.019)</td>
+</tr>
+<tr>
+<td><strong>Time Trend Dummies</strong></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Linear Time Trend</strong></td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>GDP Lags up to 2 Years</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>GDP Lags up to 6 Years</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Country-level intercepts</strong></td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Observations</strong></td>
+<td>7423</td>
+<td>7423</td>
+<td>7423</td>
+<td>7423</td>
+<td>6156</td>
+<td>6156</td>
+<td>4806</td>
+<td>4806</td>
+</tr>
+<tr>
+<td><strong>R²</strong></td>
+<td>0.630</td>
+<td>0.638</td>
+<td>0.586</td>
+<td>0.594</td>
+<td>0.074</td>
+<td>0.122</td>
+<td>0.097</td>
+<td>0.149</td>
+</tr>
+<tr>
+<td><strong>Adjusted R²</strong></td>
+<td>0.628</td>
+<td>0.625</td>
+<td>0.586</td>
+<td>0.581</td>
+<td>0.073</td>
+<td>0.088</td>
+<td>0.096</td>
+<td>0.106</td>
+</tr>
+<tr>
+<td><strong>Residual Std. Error</strong></td>
+<td>0.133 (df=7390)</td>
+<td>0.134 (df=7159)</td>
+<td>0.141 (df=7420)</td>
+<td>0.141 (df=7189)</td>
+<td>0.053 (df=6152)</td>
+<td>0.052 (df=5928)</td>
+<td>0.051 (df=4798)</td>
+<td>0.051 (df=4574)</td>
+</tr>
+<tr>
+<td><strong>F Statistic</strong></td>
+<td>29.422*** (df=32; 7390)</td>
+<td>12.112*** (df=263; 7159)</td>
+<td>234.419*** (df=2; 7420)</td>
+<td>9.576*** (df=233; 7189)</td>
+<td>38.264*** (df=3; 6152)</td>
+<td>4.726*** (df=227; 5928)</td>
+<td>19.291*** (df=7; 4798)</td>
+<td>8.520*** (df=231; 4574)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> *p&lt;0.1; **p&lt;0.05; **<em>p&lt;0.01</em></p>
+<p><strong>Table 8: Including the confounder for the OLS, FD (2 year lag) and FE models</strong></p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>OLS 2005</th>
+<th>OLS 2005 (With Confounder)</th>
+<th>Up to 2-Year Lags</th>
+<th>Up to 2-Year Lags (With Confounder)</th>
+<th>PanelOLS</th>
+<th>PanelOLS (With Confounder)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Intercept</strong></td>
+<td>-5.074***</td>
+<td>-5.455***</td>
+<td>-0.002***</td>
+<td>-0.007***</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td>(0.229)</td>
+<td>(0.219)</td>
+<td>(0.001)</td>
+<td>(0.001)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Log GDP per capita</strong></td>
+<td>0.688***</td>
+<td>0.719***</td>
+<td></td>
+<td></td>
+<td>0.365***</td>
+<td>0.458***</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td>(0.026)</td>
+<td>(0.028)</td>
+<td></td>
+<td></td>
+<td>(0.040)</td>
+<td>(0.072)</td>
+</tr>
+<tr>
+<td><strong>Manufacturing % of GDP</strong></td>
+<td></td>
+<td>0.005</td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.0009</td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td>(0.007)</td>
+<td></td>
+<td></td>
+<td></td>
+<td>(0.0032)</td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (t=0)</strong></td>
+<td></td>
+<td></td>
+<td>0.292***</td>
+<td>0.367***</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td>(0.028)</td>
+<td>(0.054)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (1-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td>-0.004</td>
+<td>0.004</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td>(0.020)</td>
+<td>(0.037)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Δ log(GDP per capita) (2-Year Lag)</strong></td>
+<td></td>
+<td></td>
+<td>0.000</td>
+<td>0.000</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td>(0.005)</td>
+<td>(0.002)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Δ Manufacturing % of GDP</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.001</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>(Std. Error)</td>
+<td></td>
+<td></td>
+<td></td>
+<td>(0.001)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Time Trend Dummies</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Linear Time Trend</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>GDP Lags up to 2 Years</strong></td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Country-level intercepts</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Observations</strong></td>
+<td>232</td>
+<td>190</td>
+<td>6156</td>
+<td>3229</td>
+<td>7424</td>
+<td>3610</td>
+</tr>
+<tr>
+<td><strong>R²</strong></td>
+<td>0.742</td>
+<td>0.788</td>
+<td>0.074</td>
+<td>0.096</td>
+<td>0.211</td>
+<td>0.198</td>
+</tr>
+<tr>
+<td><strong>Within R²</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.228</td>
+<td>0.085</td>
+</tr>
+<tr>
+<td><strong>Adjusted R²</strong></td>
+<td>0.741</td>
+<td>0.786</td>
+<td>0.073</td>
+<td>0.095</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Residual Std. Error</strong></td>
+<td>0.474 (df=230)</td>
+<td>0.433 (df=187)</td>
+<td>0.053 (df=6152)</td>
+<td>0.051 (df=3224)</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Log-Likelihood</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>4653.5</td>
+<td>3503.5</td>
+</tr>
+<tr>
+<td><strong>F Statistic</strong></td>
+<td>703.116*** (df=1; 230)</td>
+<td>460.850*** (df=2; 187)</td>
+<td>38.264*** (df=3; 6152)</td>
+<td>14.565*** (df=4; 3224)</td>
+<td>81.747*** (df=1; 7160)</td>
+<td>20.545*** (df=2; 3400)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> *p&lt;0.1; **p&lt;0.05; **<em>p&lt;0.01</em></p>
+
+            <script async src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+            
+        </body>
+        </html>

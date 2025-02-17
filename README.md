@@ -118,22 +118,28 @@ A consistent finding is, that GDP and CO2 emissions are positively related acros
 ## Figures
 **Figure 1: Comparing log and level distributions of variables in 2005**
 ![Fig 1: Distribution of Variables in 2005](./results/final/graphs/distributions_2005.png)
+---
 
 **Figure 2: Comparing log and level distributions of variables in 2023**
 ![Distribution of Variables in 2023](./results/final/graphs/distributions_2023.png)
+---
 
 **Figure 3: Coverage by features**
+
 ![Coverage by features](./results/final/graphs/non_null_ratios.png)
+---
 
 **Figure 4: Proportion of Countries with Values Non-missing by Year by Variable**
 ![Coverage by features by year](./results/final/graphs/missing_values_by_year.png)
+---
 
 **Figure 5: Conditional Distributions of Variables Based on Availability of Data on Manufacturing %**
 ![Conditional distributions](./results/final/graphs/conditional_distributions.png)
+---
 
 **Figure 6: Model 1 and 2 represented on a scatterplot with a fitted regression line.**
 ![Scatterplots with regression lines](./results/final/graphs/scatterplots_with_regression_lines.png)
-
+---
 
 ## Tables
 **Table 1: Descriptive statistics of 2005**
